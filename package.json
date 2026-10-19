@@ -1,0 +1,12 @@
+{
+  "name": "dislikescope-ai",
+  "version": "1.0.0",
+  "description": "Authentic Social Sentiment & Dislike Diagnostics",
+  "scripts": {
+    "start": "./run.sh",
+    "dev": "./run.sh",
+    "test": ".venv/bin/pytest -v",
+    "build": "cd frontend && npm run build"
+  },
+  "license": "MIT"
+}
