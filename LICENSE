@@ -1,0 +1,23 @@
+DislikeScope-AI Licensing
+
+This project is dual-licensed under either:
+
+1. The MIT License (LICENSE-MIT or https://opensource.org/licenses/MIT)
+   OR
+2. The GNU General Public License version 3.0 (LICENSE-GPL or https://www.gnu.org/licenses/gpl-3.0.html)
+
+You may choose either license at your option to govern your use, modification, and distribution of this software.
+
+---
+
+### Choice of License
+
+- **MIT License**: A permissive license that allows anyone to do anything with the code with proper attribution and without warranty. Choose this if you require seamless commercial integration or compatibility with permissive open-source workflows.
+- **GNU General Public License v3 (GPL-3.0)**: A strong copyleft license that ensures that derivative works and modifications remain free and open source. Choose this if you want copyleft protections for downstream contributions.
+
+---
+
+### Full License Texts
+
+- For the full MIT license text, see [LICENSE-MIT](LICENSE-MIT).
+- For the full GNU GPLv3 license text, see [LICENSE-GPL](LICENSE-GPL).
