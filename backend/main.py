@@ -24,6 +24,8 @@ from backend.models.schemas import (
     AnalysisResult,
     HistorySummary,
     EngagementMetrics,
+    CompareRequest,
+    ComparisonResult,
 )
 from backend.services.youtube import (
     extract_youtube_video_id,
@@ -291,3 +293,103 @@ def export_csv(analysis_id: str):
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+def _analyze_target_by_url(url: str, sample_limit: int) -> AnalysisResult:
+    """Helper to detect platform and execute analysis for a target URL."""
+    clean_url = (url or "").strip()
+    if extract_youtube_video_id(clean_url):
+        return analyze_youtube(AnalyzeRequest(url=clean_url, sample_limit=sample_limit))
+    elif extract_x_post_id(clean_url):
+        return analyze_x(AnalyzeRequest(url=clean_url, sample_limit=sample_limit))
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported URL: '{url}'. Please supply a valid YouTube or X.com/Twitter post URL.",
+        )
+
+
+def compute_comparison_result(res_a: AnalysisResult, res_b: AnalysisResult) -> ComparisonResult:
+    """Computes comparative deltas, winners, and an executive comparison statement."""
+    pos_delta = round(res_a.sentiment.positive_percentage - res_b.sentiment.positive_percentage, 1)
+    neg_delta = round(res_a.sentiment.negative_percentage - res_b.sentiment.negative_percentage, 1)
+
+    ci_a = res_a.sentiment.verdict.controversy_index if res_a.sentiment.verdict else 0.0
+    ci_b = res_b.sentiment.verdict.controversy_index if res_b.sentiment.verdict else 0.0
+    controversy_delta = round(ci_a - ci_b, 1)
+
+    # Higher positive target
+    if res_a.sentiment.positive_percentage > res_b.sentiment.positive_percentage:
+        higher_pos = res_a.target_id
+    elif res_b.sentiment.positive_percentage > res_a.sentiment.positive_percentage:
+        higher_pos = res_b.target_id
+    else:
+        higher_pos = None
+
+    # Higher negative target
+    if res_a.sentiment.negative_percentage > res_b.sentiment.negative_percentage:
+        higher_neg = res_a.target_id
+    elif res_b.sentiment.negative_percentage > res_a.sentiment.negative_percentage:
+        higher_neg = res_b.target_id
+    else:
+        higher_neg = None
+
+    title_a = res_a.title or res_a.target_id
+    title_b = res_b.title or res_b.target_id
+
+    if higher_pos == res_a.target_id and higher_neg == res_b.target_id:
+        headline = f"'{title_a}' demonstrates superior positive sentiment (+{pos_delta}%) with lower negative backlash compared to '{title_b}'."
+    elif higher_pos == res_b.target_id and higher_neg == res_a.target_id:
+        headline = f"'{title_b}' demonstrates superior positive sentiment (+{abs(pos_delta)}%) with lower negative backlash compared to '{title_a}'."
+    elif pos_delta == 0 and neg_delta == 0:
+        headline = "Both targets exhibit virtually equivalent audience sentiment and reaction ratios."
+    else:
+        headline = f"Comparison shows a {abs(pos_delta)}% positive differential and a {abs(neg_delta)}% negative differential between targets."
+
+    return ComparisonResult(
+        target_a=res_a,
+        target_b=res_b,
+        higher_positive_target=higher_pos,
+        higher_dislike_target=higher_neg,
+        sentiment_delta_positive=pos_delta,
+        sentiment_delta_negative=neg_delta,
+        controversy_delta=controversy_delta,
+        summary_headline=headline,
+    )
+
+
+@app.post("/api/compare", response_model=ComparisonResult)
+def compare_urls(request: CompareRequest):
+    """
+    Compares two social targets head-to-head by URL:
+    1. Analyzes both targets independently
+    2. Calculates side-by-side metric deltas and controversy comparison
+    3. Produces an executive benchmark result
+    """
+    sample_limit = min(
+        max(request.sample_limit or DEFAULT_SAMPLE_LIMIT, 1),
+        MAX_SAMPLE_LIMIT,
+    )
+
+    res_a = _analyze_target_by_url(request.url_a, sample_limit)
+    res_b = _analyze_target_by_url(request.url_b, sample_limit)
+
+    return compute_comparison_result(res_a, res_b)
+
+
+@app.get("/api/compare", response_model=ComparisonResult)
+def compare_history_items(
+    id_a: str = Query(..., description="First analysis report ID"),
+    id_b: str = Query(..., description="Second analysis report ID"),
+):
+    """Compares two existing historical analysis reports from SQLite."""
+    res_a = get_analysis(id_a)
+    if not res_a:
+        raise HTTPException(status_code=404, detail=f"Analysis report '{id_a}' not found.")
+
+    res_b = get_analysis(id_b)
+    if not res_b:
+        raise HTTPException(status_code=404, detail=f"Analysis report '{id_b}' not found.")
+
+    return compute_comparison_result(res_a, res_b)
+

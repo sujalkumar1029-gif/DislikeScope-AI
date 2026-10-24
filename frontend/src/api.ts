@@ -1,4 +1,4 @@
-import type { AnalysisResult, HistorySummary } from './types';
+import type { AnalysisResult, HistorySummary, ComparisonResult } from './types';
 
 const API_BASE = '/api';
 
@@ -45,6 +45,20 @@ export async function analyzeX(url: string, sampleLimit: number = 100): Promise<
   return handleResponse<AnalysisResult>(res);
 }
 
+export async function compareUrls(url_a: string, url_b: string, sampleLimit: number = 100): Promise<ComparisonResult> {
+  const res = await fetch(`${API_BASE}/compare`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url_a, url_b, sample_limit: sampleLimit }),
+  });
+  return handleResponse<ComparisonResult>(res);
+}
+
+export async function compareHistoryItems(id_a: string, id_b: string): Promise<ComparisonResult> {
+  const res = await fetch(`${API_BASE}/compare?id_a=${encodeURIComponent(id_a)}&id_b=${encodeURIComponent(id_b)}`);
+  return handleResponse<ComparisonResult>(res);
+}
+
 export async function fetchHistory(): Promise<HistorySummary[]> {
   const res = await fetch(`${API_BASE}/history?limit=50`);
   return handleResponse<HistorySummary[]>(res);
@@ -69,3 +83,4 @@ export function getExportJsonUrl(id: string): string {
 export function getExportCsvUrl(id: string): string {
   return `${API_BASE}/export/${encodeURIComponent(id)}/csv`;
 }
+

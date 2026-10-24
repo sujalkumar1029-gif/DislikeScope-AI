@@ -97,3 +97,89 @@ def test_analyze_x_success(mock_fetch_x, client):
     assert data["sentiment"]["negative_count"] == 0
     assert data["diagnostics"]["extraction_status"] == "restricted"
     assert data["diagnostics"]["analyzed_count"] == 0
+
+
+def test_compare_history_items(client):
+    from backend.database import save_analysis
+    from backend.models.schemas import (
+        AnalysisResult,
+        PlatformType,
+        SentimentSummary,
+        EngagementMetrics,
+        RetrievalDiagnostics,
+        DiagnosticVerdict,
+    )
+
+    item_a = AnalysisResult(
+        id="test_a_123",
+        platform=PlatformType.YOUTUBE,
+        url="https://www.youtube.com/watch?v=aaaaaaaaaaa",
+        target_id="aaaaaaaaaaa",
+        title="Video A - Loved",
+        created_at="2026-10-24T00:00:00Z",
+        sentiment=SentimentSummary(
+            positive_count=80,
+            neutral_count=10,
+            negative_count=10,
+            total_analyzed=100,
+            positive_percentage=80.0,
+            neutral_percentage=10.0,
+            negative_percentage=10.0,
+            average_compound=0.6,
+            verdict=DiagnosticVerdict(
+                label="Overwhelming Audience Praise",
+                headline="High praise",
+                severity="success",
+                controversy_index=20.0,
+                controversy_level="Low / Consensus",
+            ),
+        ),
+        engagement=EngagementMetrics(views=10000, likes=1500),
+        diagnostics=RetrievalDiagnostics(retrieved_records_count=100, usable_text_count=100, analyzed_count=100),
+        methodology="VADER",
+        comments_sample=[],
+    )
+
+    item_b = AnalysisResult(
+        id="test_b_456",
+        platform=PlatformType.YOUTUBE,
+        url="https://www.youtube.com/watch?v=bbbbbbbbbbb",
+        target_id="bbbbbbbbbbb",
+        title="Video B - Disliked",
+        created_at="2026-10-24T00:00:00Z",
+        sentiment=SentimentSummary(
+            positive_count=20,
+            neutral_count=20,
+            negative_count=60,
+            total_analyzed=100,
+            positive_percentage=20.0,
+            neutral_percentage=20.0,
+            negative_percentage=60.0,
+            average_compound=-0.4,
+            verdict=DiagnosticVerdict(
+                label="Severe Audience Backlash",
+                headline="Heavy backlash",
+                severity="critical",
+                controversy_index=45.0,
+                controversy_level="Moderate",
+            ),
+        ),
+        engagement=EngagementMetrics(views=8000, likes=200),
+        diagnostics=RetrievalDiagnostics(retrieved_records_count=100, usable_text_count=100, analyzed_count=100),
+        methodology="VADER",
+        comments_sample=[],
+    )
+
+    save_analysis(item_a)
+    save_analysis(item_b)
+
+    resp = client.get("/api/compare?id_a=test_a_123&id_b=test_b_456")
+    assert resp.status_code == 200
+    comp = resp.json()
+
+    assert comp["higher_positive_target"] == "aaaaaaaaaaa"
+    assert comp["higher_dislike_target"] == "bbbbbbbbbbb"
+    assert comp["sentiment_delta_positive"] == 60.0 # 80 - 20
+    assert comp["sentiment_delta_negative"] == -50.0 # 10 - 60
+    assert "Video A - Loved" in comp["summary_headline"]
+

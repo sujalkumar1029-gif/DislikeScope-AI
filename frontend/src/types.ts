@@ -17,6 +17,36 @@ export interface CommentItem {
   };
 }
 
+export interface SentimentDriverItem {
+  keyword: string;
+  count: number;
+  sentiment: SentimentCategory;
+  sample_snippet?: string;
+}
+
+export interface ScoreBucket {
+  label: string;
+  range_label: string;
+  count: number;
+  percentage: number;
+}
+
+export interface LikeWeightedMetrics {
+  weighted_compound: number;
+  weighted_positive_pct: number;
+  weighted_neutral_pct: number;
+  weighted_negative_pct: number;
+  total_weight: number;
+}
+
+export interface DiagnosticVerdict {
+  label: string;
+  headline: string;
+  severity: 'success' | 'info' | 'warning' | 'critical';
+  controversy_index: number;
+  controversy_level: string;
+}
+
 export interface SentimentSummary {
   positive_count: number;
   neutral_count: number;
@@ -26,6 +56,11 @@ export interface SentimentSummary {
   neutral_percentage: number;
   negative_percentage: number;
   average_compound: number;
+  dislike_drivers?: SentimentDriverItem[];
+  praise_drivers?: SentimentDriverItem[];
+  score_distribution?: ScoreBucket[];
+  like_weighted?: LikeWeightedMetrics;
+  verdict?: DiagnosticVerdict;
 }
 
 export interface ThirdPartyDislikes {
@@ -87,3 +122,21 @@ export interface HistorySummary {
   negative_count: number;
   extraction_status: string;
 }
+
+export interface CompareRequest {
+  url_a: string;
+  url_b: string;
+  sample_limit?: number;
+}
+
+export interface ComparisonResult {
+  target_a: AnalysisResult;
+  target_b: AnalysisResult;
+  higher_positive_target?: string;
+  higher_dislike_target?: string;
+  sentiment_delta_positive: number;
+  sentiment_delta_negative: number;
+  controversy_delta: number;
+  summary_headline: string;
+}
+

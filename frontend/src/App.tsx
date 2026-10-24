@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Search, ArrowLeftRight } from 'lucide-react';
 import { Header } from './components/Header';
 import { UrlInput } from './components/UrlInput';
 import { SentimentSummary } from './components/SentimentSummary';
@@ -8,6 +9,7 @@ import { CommentsList } from './components/CommentsList';
 import { HistoryPanel } from './components/HistoryPanel';
 import { ExportButtons } from './components/ExportButtons';
 import { LimitationsNotice } from './components/LimitationsNotice';
+import { ComparisonView } from './components/ComparisonView';
 import type {
   PlatformType,
   AnalysisResult,
@@ -22,8 +24,10 @@ import {
 } from './api';
 
 export const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'single' | 'compare'>('single');
   const [platform, setPlatform] = useState<PlatformType>('youtube');
   const [currentAnalysis, setCurrentAnalysis] = useState<AnalysisResult | null>(null);
+  const [selectedDriverKeyword, setSelectedDriverKeyword] = useState<string>('');
   const [history, setHistory] = useState<HistorySummaryType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +51,7 @@ export const App: React.FC = () => {
   const handleAnalyze = async (url: string, sampleLimit: number) => {
     setIsLoading(true);
     setError(null);
+    setSelectedDriverKeyword('');
 
     try {
       let result: AnalysisResult;
@@ -68,9 +73,11 @@ export const App: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
+      setSelectedDriverKeyword('');
       const result = await fetchHistoryItem(id);
       setCurrentAnalysis(result);
       setPlatform(result.platform);
+      setActiveTab('single');
     } catch (err: any) {
       setError(err.message || 'Failed to load historical report');
     } finally {
@@ -90,63 +97,107 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleComparePairFromHistory = (_idA: string, _idB: string) => {
+    setActiveTab('compare');
+  };
+
   return (
     <div className="app-container">
       <Header />
 
+      {/* Main Mode Navigation Bar */}
+      <div className="app-mode-nav">
+        <button
+          type="button"
+          className={`mode-tab-btn ${activeTab === 'single' ? 'active' : ''}`}
+          onClick={() => setActiveTab('single')}
+        >
+          <Search size={16} />
+          <span>Deep Target Diagnostics</span>
+        </button>
+
+        <button
+          type="button"
+          className={`mode-tab-btn ${activeTab === 'compare' ? 'active' : ''}`}
+          onClick={() => setActiveTab('compare')}
+        >
+          <ArrowLeftRight size={16} />
+          <span>Head-to-Head Benchmark</span>
+        </button>
+      </div>
+
       <main className="dashboard-grid">
         <section className="main-content">
-          <UrlInput
-            selectedPlatform={platform}
-            onPlatformChange={setPlatform}
-            onAnalyze={handleAnalyze}
-            isLoading={isLoading}
-            error={error}
-            isXAvailable={isXAvailable}
-          />
-
-          {currentAnalysis && (
-            <div className="glass-card" style={{ marginBottom: '28px' }}>
-              {/* Target Preview */}
-              <div className="target-preview-card">
-                {currentAnalysis.thumbnail_url && (
-                  <img
-                    src={currentAnalysis.thumbnail_url}
-                    alt={currentAnalysis.title || 'Video Thumbnail'}
-                    className="target-thumbnail"
-                  />
-                )}
-                <div className="target-details">
-                  <h2 className="target-title" title={currentAnalysis.title || ''}>
-                    {currentAnalysis.title}
-                  </h2>
-                  <div className="target-meta">
-                    <span>Creator: <strong>{currentAnalysis.author}</strong></span>
-                    <span>Platform: <strong>{currentAnalysis.platform.toUpperCase()}</strong></span>
-                    <span>Analyzed: {new Date(currentAnalysis.created_at).toLocaleString()}</span>
-                  </div>
-                  <ExportButtons analysisId={currentAnalysis.id} />
-                </div>
-              </div>
-
-              {/* Sentiment Summary */}
-              <SentimentSummary
-                summary={currentAnalysis.sentiment}
-                methodology={currentAnalysis.methodology}
+          {activeTab === 'single' ? (
+            <>
+              <UrlInput
+                selectedPlatform={platform}
+                onPlatformChange={setPlatform}
+                onAnalyze={handleAnalyze}
+                isLoading={isLoading}
+                error={error}
+                isXAvailable={isXAvailable}
               />
 
-              {/* Engagement Metrics (Separated from Sentiment) */}
-              <EngagementMetrics metrics={currentAnalysis.engagement} />
+              {currentAnalysis && (
+                <div className="glass-card" style={{ marginBottom: '28px' }}>
+                  {/* Target Preview */}
+                  <div className="target-preview-card">
+                    {currentAnalysis.thumbnail_url && (
+                      <img
+                        src={currentAnalysis.thumbnail_url}
+                        alt={currentAnalysis.title || 'Video Thumbnail'}
+                        className="target-thumbnail"
+                      />
+                    )}
+                    <div className="target-details">
+                      <h2 className="target-title" title={currentAnalysis.title || ''}>
+                        {currentAnalysis.title}
+                      </h2>
+                      <div className="target-meta">
+                        <span>Creator: <strong>{currentAnalysis.author}</strong></span>
+                        <span>Platform: <strong>{currentAnalysis.platform.toUpperCase()}</strong></span>
+                        <span>Analyzed: {new Date(currentAnalysis.created_at).toLocaleString()}</span>
+                      </div>
+                      <ExportButtons analysisId={currentAnalysis.id} />
+                    </div>
+                  </div>
 
-              {/* Retrieval Diagnostics */}
-              <DiagnosticsCard diagnostics={currentAnalysis.diagnostics} />
+                  {/* Sentiment Summary with Verdict, Drivers, Resonance & Distribution */}
+                  <SentimentSummary
+                    summary={currentAnalysis.sentiment}
+                    methodology={currentAnalysis.methodology}
+                    selectedKeyword={selectedDriverKeyword}
+                    onSelectKeyword={setSelectedDriverKeyword}
+                  />
 
-              {/* Comments Sample List */}
-              <CommentsList comments={currentAnalysis.comments_sample} />
-            </div>
+                  {/* Engagement Metrics (Separated from Sentiment) */}
+                  <EngagementMetrics metrics={currentAnalysis.engagement} />
+
+                  {/* Retrieval Diagnostics */}
+                  <DiagnosticsCard diagnostics={currentAnalysis.diagnostics} />
+
+                  {/* Interactive Comment Explorer */}
+                  <CommentsList
+                    comments={currentAnalysis.comments_sample}
+                    selectedKeyword={selectedDriverKeyword}
+                    onClearKeyword={() => setSelectedDriverKeyword('')}
+                  />
+                </div>
+              )}
+
+              <LimitationsNotice />
+            </>
+          ) : (
+            <ComparisonView
+              history={history}
+              onInspectTarget={(target) => {
+                setCurrentAnalysis(target);
+                setPlatform(target.platform);
+                setActiveTab('single');
+              }}
+            />
           )}
-
-          <LimitationsNotice />
         </section>
 
         {/* Sidebar History Panel */}
@@ -157,6 +208,7 @@ export const App: React.FC = () => {
               selectedId={currentAnalysis?.id || null}
               onSelect={handleSelectHistory}
               onDelete={handleDeleteHistory}
+              onComparePair={handleComparePairFromHistory}
             />
           </div>
         </aside>
@@ -166,3 +218,4 @@ export const App: React.FC = () => {
 };
 
 export default App;
+

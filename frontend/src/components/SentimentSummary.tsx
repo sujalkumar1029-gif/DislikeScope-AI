@@ -1,13 +1,24 @@
 import React from 'react';
 import { ThumbsUp, Minus, ThumbsDown, BarChart3, Info } from 'lucide-react';
 import type { SentimentSummary as SentimentSummaryType } from '../types';
+import { VerdictBanner } from './VerdictBanner';
+import { SentimentDistribution } from './SentimentDistribution';
+import { SentimentDrivers } from './SentimentDrivers';
+import { CommunityResonance } from './CommunityResonance';
 
 interface SentimentSummaryProps {
   summary: SentimentSummaryType;
   methodology: string;
+  selectedKeyword?: string;
+  onSelectKeyword?: (keyword: string) => void;
 }
 
-export const SentimentSummary: React.FC<SentimentSummaryProps> = ({ summary, methodology }) => {
+export const SentimentSummary: React.FC<SentimentSummaryProps> = ({
+  summary,
+  methodology,
+  selectedKeyword,
+  onSelectKeyword,
+}) => {
   const {
     positive_count,
     neutral_count,
@@ -17,12 +28,18 @@ export const SentimentSummary: React.FC<SentimentSummaryProps> = ({ summary, met
     neutral_percentage,
     negative_percentage,
     average_compound,
+    dislike_drivers = [],
+    praise_drivers = [],
+    score_distribution = [],
+    like_weighted,
+    verdict,
   } = summary;
 
   if (total_analyzed === 0) {
     return (
       <div className="sentiment-section">
-        <h3 className="section-title">
+        {verdict && <VerdictBanner verdict={verdict} />}
+        <h3 className="section-title" style={{ marginTop: '16px' }}>
           <BarChart3 size={18} color="#06b6d4" />
           <span>Audience Sentiment Analysis</span>
         </h3>
@@ -39,12 +56,15 @@ export const SentimentSummary: React.FC<SentimentSummaryProps> = ({ summary, met
 
   return (
     <div className="sentiment-section">
-      <h3 className="section-title">
+      {/* 1. Executive Diagnostic Verdict Banner */}
+      {verdict && <VerdictBanner verdict={verdict} />}
+
+      <h3 className="section-title" style={{ marginTop: verdict ? '20px' : '0' }}>
         <BarChart3 size={18} color="#06b6d4" />
-        <span>Audience Sentiment Analysis ({total_analyzed} comments analyzed)</span>
+        <span>Audience Sentiment Breakdown ({total_analyzed} comments analyzed)</span>
       </h3>
 
-      {/* Trio Cards */}
+      {/* 2. Trio Metric Cards */}
       <div className="cards-trio">
         <div className="metric-card positive">
           <div className="metric-header">
@@ -74,7 +94,7 @@ export const SentimentSummary: React.FC<SentimentSummaryProps> = ({ summary, met
         </div>
       </div>
 
-      {/* Visual Stacked Progress Bar */}
+      {/* 3. Visual Stacked Progress Bar */}
       <div className="sentiment-bar-wrapper">
         <div className="sentiment-bar-track" title={`Positive: ${positive_percentage}%, Neutral: ${neutral_percentage}%, Negative: ${negative_percentage}%`}>
           <div
@@ -92,7 +112,27 @@ export const SentimentSummary: React.FC<SentimentSummaryProps> = ({ summary, met
         </div>
       </div>
 
-      {/* Methodology & Compound Score */}
+      {/* 4. Community Resonance (Like-Weighted Sentiment vs Raw) */}
+      {like_weighted && (
+        <CommunityResonance summary={summary} likeWeighted={like_weighted} />
+      )}
+
+      {/* 5. Key Praise & Dislike Drivers */}
+      {(praise_drivers.length > 0 || dislike_drivers.length > 0) && (
+        <SentimentDrivers
+          praiseDrivers={praise_drivers}
+          dislikeDrivers={dislike_drivers}
+          selectedKeyword={selectedKeyword}
+          onSelectKeyword={onSelectKeyword}
+        />
+      )}
+
+      {/* 6. Score Polarity Distribution Histogram */}
+      {score_distribution.length > 0 && (
+        <SentimentDistribution distribution={score_distribution} />
+      )}
+
+      {/* 7. Methodology & Compound Score */}
       <div className="methodology-box">
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontWeight: 600 }}>
           <span>Methodology & Thresholding</span>
@@ -103,3 +143,4 @@ export const SentimentSummary: React.FC<SentimentSummaryProps> = ({ summary, met
     </div>
   );
 };
+

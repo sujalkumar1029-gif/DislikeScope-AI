@@ -42,15 +42,43 @@ def export_analysis_csv(result: AnalysisResult) -> str:
     writer.writerow(["Limitations Note", diag.limitations_note or "None"])
     writer.writerow([])
 
-    # 3. Sentiment Summary
-    writer.writerow(["# SENTIMENT SUMMARY"])
+    # 3. Sentiment Summary & Advanced Diagnostics
+    writer.writerow(["# SENTIMENT SUMMARY & ADVANCED DIAGNOSTICS"])
     sent = result.sentiment
+    if sent.verdict:
+        writer.writerow(["Executive Verdict", sent.verdict.label])
+        writer.writerow(["Verdict Summary", sent.verdict.headline])
+        writer.writerow(["Controversy Index", f"{sent.verdict.controversy_index}/100 ({sent.verdict.controversy_level})"])
     writer.writerow(["Metric", "Count", "Percentage"])
-    writer.writerow(["Positive", sent.positive_count, f"{sent.positive_percentage}%"])
-    writer.writerow(["Neutral", sent.neutral_count, f"{sent.neutral_percentage}%"])
-    writer.writerow(["Negative", sent.negative_count, f"{sent.negative_percentage}%"])
+    writer.writerow(["Positive (Raw)", sent.positive_count, f"{sent.positive_percentage}%"])
+    writer.writerow(["Neutral (Raw)", sent.neutral_count, f"{sent.neutral_percentage}%"])
+    writer.writerow(["Negative (Raw)", sent.negative_count, f"{sent.negative_percentage}%"])
     writer.writerow(["Total Analyzed", sent.total_analyzed, "100.0%"])
     writer.writerow(["Average Compound Score", sent.average_compound, "N/A"])
+
+    if sent.like_weighted:
+        writer.writerow([])
+        writer.writerow(["# COMMUNITY LIKE-WEIGHTED SENTIMENT"])
+        writer.writerow(["Metric", "Weighted Percentage"])
+        writer.writerow(["Positive (Weighted)", f"{sent.like_weighted.weighted_positive_pct}%"])
+        writer.writerow(["Neutral (Weighted)", f"{sent.like_weighted.weighted_neutral_pct}%"])
+        writer.writerow(["Negative (Weighted)", f"{sent.like_weighted.weighted_negative_pct}%"])
+        writer.writerow(["Weighted Compound Score", sent.like_weighted.weighted_compound])
+
+    if sent.praise_drivers:
+        writer.writerow([])
+        writer.writerow(["# TOP PRAISE DRIVERS"])
+        writer.writerow(["Theme/Phrase", "Mentions", "Representative Sample"])
+        for d in sent.praise_drivers:
+            writer.writerow([d.keyword, d.count, (d.sample_snippet or "").replace("\r\n", " ").replace("\n", " ")])
+
+    if sent.dislike_drivers:
+        writer.writerow([])
+        writer.writerow(["# TOP DISLIKE DRIVERS"])
+        writer.writerow(["Theme/Phrase", "Mentions", "Representative Sample"])
+        for d in sent.dislike_drivers:
+            writer.writerow([d.keyword, d.count, (d.sample_snippet or "").replace("\r\n", " ").replace("\n", " ")])
+
     writer.writerow([])
 
     # 4. Engagement Metrics

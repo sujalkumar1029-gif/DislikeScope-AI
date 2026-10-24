@@ -61,19 +61,24 @@ DislikeScope-AI/
 │   ├── index.html            # Semantic HTML with SEO & typography
 │   └── src/
 │       ├── main.tsx          # React application entry
-│       ├── App.tsx           # Dashboard view coordinator
+│       ├── App.tsx           # Dashboard view coordinator with mode switching
 │       ├── index.css         # Modern dark theme design system
-│       ├── api.ts            # Typed HTTP client
+│       ├── api.ts            # Typed HTTP client with comparison support
 │       ├── types.ts          # TypeScript interfaces matching backend models
 │       └── components/
 │           ├── Header.tsx             # Brand header & Truth Policy indicator
 │           ├── Icons.tsx              # Clean SVG icons
 │           ├── UrlInput.tsx           # Platform selector & URL submission
-│           ├── SentimentSummary.tsx   # Positive/Neutral/Negative cards & bar
+│           ├── VerdictBanner.tsx      # Executive diagnostic verdict & controversy index
+│           ├── SentimentSummary.tsx   # Aggregated sentiment breakdown coordinator
+│           ├── SentimentDrivers.tsx   # Top praise & dislike keyphrase themes with click-filter
+│           ├── SentimentDistribution.tsx # 5-tier polarity score histogram
+│           ├── CommunityResonance.tsx # Like-weighted community consensus comparison
 │           ├── EngagementMetrics.tsx  # Views, likes, and dislike estimates
 │           ├── DiagnosticsCard.tsx    # Record reconciliation & status table
-│           ├── CommentsList.tsx       # Scored comment browser with filter
-│           ├── HistoryPanel.tsx       # SQLite history sidebar
+│           ├── CommentsList.tsx       # Comment Explorer with live search & multi-sort
+│           ├── ComparisonView.tsx     # Head-to-Head target benchmark view
+│           ├── HistoryPanel.tsx       # SQLite history sidebar with compare pickers
 │           ├── ExportButtons.tsx      # CSV and JSON downloads
 │           └── LimitationsNotice.tsx  # Access boundaries disclosure
 └── data/
@@ -184,7 +189,7 @@ Builds optimized production assets to `frontend/dist/`.
 
 The test suite covers URL normalization, extraction failure modes, count reconciliation, database persistence, and CSV/JSON exports.
 
-### Run Backend Tests (26 Automated Tests)
+### Run Backend Tests (30 Automated Tests)
 ```bash
 source .venv/bin/activate
 pytest -v
