@@ -97,24 +97,63 @@ export const UrlInput: React.FC<UrlInputProps> = ({
           </button>
         </div>
 
-        {/* Sample Limit Selector */}
+        {/* Sample Limit Selector & Quick Samples */}
         <div className="sample-limit-row">
-          <span>Max Comments Sample Limit:</span>
-          <div className="limit-pills">
-            {SAMPLE_LIMITS.map((limit) => (
-              <button
-                key={limit}
-                type="button"
-                className={`limit-pill ${sampleLimit === limit ? 'active' : ''}`}
-                onClick={() => setSampleLimit(limit)}
-                disabled={isLoading}
-              >
-                {limit}
-              </button>
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span>Max Comments Sample Limit:</span>
+            <div className="limit-pills">
+              {SAMPLE_LIMITS.map((limit) => (
+                <button
+                  key={limit}
+                  type="button"
+                  className={`limit-pill ${sampleLimit === limit ? 'active' : ''}`}
+                  onClick={() => setSampleLimit(limit)}
+                  disabled={isLoading}
+                >
+                  {limit}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick Demo Test Samples */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.76rem', color: 'var(--text-dim)' }}>Try demo:</span>
+            <button
+              type="button"
+              className="quick-sample-pill"
+              onClick={() => {
+                onPlatformChange('youtube');
+                setUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+              }}
+              disabled={isLoading}
+            >
+              YouTube Sample
+            </button>
+            <button
+              type="button"
+              className="quick-sample-pill"
+              onClick={() => {
+                onPlatformChange('x');
+                setUrl('https://x.com/jack/status/20');
+              }}
+              disabled={isLoading}
+            >
+              X.com Sample
+            </button>
           </div>
         </div>
       </form>
+
+      {/* Loading Progress Info */}
+      {isLoading && (
+        <div className="analysis-progress-indicator">
+          <Loader2 size={16} className="animate-spin text-cyan" />
+          <span>
+            Extracting public records, fetching 3rd-party dislike estimates, and scoring sentiment with zero fabrication...
+          </span>
+        </div>
+      )}
 
       {/* Actionable Error State */}
       {error && (

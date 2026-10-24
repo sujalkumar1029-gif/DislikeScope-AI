@@ -78,6 +78,7 @@ app.add_middleware(
 
 
 @app.get("/api/health")
+@app.get("/health")
 def health_check():
     return {
         "status": "healthy",

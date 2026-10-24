@@ -90,6 +90,43 @@ def get_analysis(analysis_id: str) -> Optional[AnalysisResult]:
         engagement_data = json.loads(row["engagement_json"])
         diagnostics_data = json.loads(row["diagnostics_json"])
         comments_data = json.loads(row["comments_sample_json"])
+        comments_items = [CommentItem(**c) for c in comments_data]
+
+        sentiment_summary = SentimentSummary(**sentiment_data)
+        # Backward compatibility: dynamically enrich legacy records missing advanced analytics
+        if sentiment_summary.verdict is None and comments_items:
+            from backend.services.sentiment import (
+                extract_sentiment_drivers,
+                compute_score_distribution,
+                compute_like_weighted_metrics,
+                compute_controversy_index,
+                build_diagnostic_verdict,
+            )
+            from backend.models.schemas import SentimentCategory
+            if not sentiment_summary.praise_drivers:
+                sentiment_summary.praise_drivers = extract_sentiment_drivers(comments_items, SentimentCategory.POSITIVE, top_n=5)
+            if not sentiment_summary.dislike_drivers:
+                sentiment_summary.dislike_drivers = extract_sentiment_drivers(comments_items, SentimentCategory.NEGATIVE, top_n=5)
+            if not sentiment_summary.score_distribution:
+                sentiment_summary.score_distribution = compute_score_distribution(comments_items)
+            if not sentiment_summary.like_weighted:
+                sentiment_summary.like_weighted = compute_like_weighted_metrics(comments_items)
+
+            ci, cl = compute_controversy_index(
+                sentiment_summary.positive_count,
+                sentiment_summary.negative_count,
+                sentiment_summary.total_analyzed,
+                [c.sentiment_score for c in comments_items if c.sentiment_score is not None],
+            )
+            sentiment_summary.verdict = build_diagnostic_verdict(
+                total=sentiment_summary.total_analyzed,
+                pos_pct=sentiment_summary.positive_percentage,
+                neu_pct=sentiment_summary.neutral_percentage,
+                neg_pct=sentiment_summary.negative_percentage,
+                controversy_index=ci,
+                controversy_level=cl,
+                weighted=sentiment_summary.like_weighted,
+            )
 
         return AnalysisResult(
             id=row["id"],
@@ -100,11 +137,11 @@ def get_analysis(analysis_id: str) -> Optional[AnalysisResult]:
             author=row["author"],
             thumbnail_url=row["thumbnail_url"],
             created_at=row["created_at"],
-            sentiment=SentimentSummary(**sentiment_data),
+            sentiment=sentiment_summary,
             engagement=EngagementMetrics(**engagement_data),
             diagnostics=RetrievalDiagnostics(**diagnostics_data),
             methodology=row["methodology"],
-            comments_sample=[CommentItem(**c) for c in comments_data],
+            comments_sample=comments_items,
         )
 
 

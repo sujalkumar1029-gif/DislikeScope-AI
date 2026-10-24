@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ArrowLeftRight } from 'lucide-react';
+import { Search, ArrowLeftRight, RefreshCw } from 'lucide-react';
 import { Header } from './components/Header';
 import { UrlInput } from './components/UrlInput';
 import { SentimentSummary } from './components/SentimentSummary';
@@ -159,7 +159,19 @@ export const App: React.FC = () => {
                         <span>Platform: <strong>{currentAnalysis.platform.toUpperCase()}</strong></span>
                         <span>Analyzed: {new Date(currentAnalysis.created_at).toLocaleString()}</span>
                       </div>
-                      <ExportButtons analysisId={currentAnalysis.id} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '10px' }}>
+                        <ExportButtons analysisId={currentAnalysis.id} result={currentAnalysis} />
+                        <button
+                          type="button"
+                          className="export-btn"
+                          onClick={() => handleAnalyze(currentAnalysis.url, 100)}
+                          disabled={isLoading}
+                          title="Re-run extraction and update analysis fresh"
+                        >
+                          <RefreshCw size={15} color="#3b82f6" className={isLoading ? 'animate-spin' : ''} />
+                          <span>Re-analyze</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
 
